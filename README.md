@@ -8,6 +8,12 @@ Built for the Google Cloud AI Builder Cup 2026 — Retail & Commerce track.
 
 ---
 
+## 🌐 Live Website
+
+**Try StoreMind:** https://storemind-508614.web.app/
+
+---
+
 ## The problem
 
 ChatGPT, Gemini, and other shopping agents are becoming a real commerce surface — but every
