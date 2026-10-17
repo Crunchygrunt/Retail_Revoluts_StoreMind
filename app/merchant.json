@@ -1,0 +1,8 @@
+{
+  "product_id": "OUTOFSTOCK-01",
+  "currency": "INR",
+  "out_of_stock_id": "FILL_ME: a product id known to be out of stock",
+  "catalog": {
+    "variant_id": "OUTOFSTOCK-01"
+  }
+}

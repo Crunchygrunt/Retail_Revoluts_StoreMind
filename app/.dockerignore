@@ -1,0 +1,6 @@
+.env
+__pycache__/
+*.pyc
+local_store_data.json
+stress_test_store.json
+tests/

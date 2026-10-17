@@ -1,0 +1,23 @@
+# Core — needed for ALL modes, including fully offline (mock LLM + local store)
+fastapi==0.115.0
+# uvicorn[standard]==0.30.6
+uvicorn[standard]>=0.31.1
+# pydantic==2.9.2
+pydantic>=2.11.0,<3.0.0
+python-dotenv==1.0.1
+
+# Locale-aware price parsing (layer0_validator.py) and Unicode Script
+# detection for scriptio-continua languages (readiness_score.py) —
+# added for SEA market-readiness (Thai/Khmer/Lao/Myanmar + IDR/VND).
+price-parser==0.4.0
+regex==2025.11.3
+pytest
+
+babel==2.18.0
+tenacity
+Pillow
+google-cloud-storage
+openpyxl
+defusedxml
+python-multipart
+mcp==1.30.0

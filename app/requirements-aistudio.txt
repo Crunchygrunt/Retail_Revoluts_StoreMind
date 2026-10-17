@@ -1,0 +1,3 @@
+# Add on top of requirements.txt to test against real Gemini via a free
+# Google AI Studio API key (no GCP project needed). See catalog_agent_aistudio.py.
+google-genai

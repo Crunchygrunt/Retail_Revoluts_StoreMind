@@ -1,0 +1,17 @@
+app/.env
+app/local_store_data.json
+sample_data/local_store_data.json
+sample_data/ingest_request_body.json
+sample_data/checkout_request.json
+sample_data/checkout_thin.json
+__pycache__/
+*.pyc
+.venv/
+app/deploy.env
+app/seller.env
+*.env
+node_modules/
+media/
+scratch_backup/
+.agents/
+app/.env.*

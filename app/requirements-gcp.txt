@@ -1,0 +1,9 @@
+# Add on top of requirements.txt once you have GCP project access, for the
+# real Vertex AI + Firestore backends.
+#
+# Note: google-cloud-aiplatform is intentionally NOT listed here.
+# catalog_agent.py uses the google-genai SDK (same package as the AI
+# Studio backend) pointed at Vertex AI — the older vertexai.generative_models
+# module was deprecated and is removed from SDK releases after June 2026.
+google-cloud-firestore==2.19.0
+google-genai

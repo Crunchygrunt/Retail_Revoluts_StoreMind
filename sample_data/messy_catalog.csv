@@ -1,0 +1,12 @@
+sku,name,price,description,image
+SKU-001,Handwoven Cotton Tote Bag,499,"Durable everyday tote, hand-loomed cotton.",tote.jpg
+SKU-002,Ceramic Coffee Mug,,"Glazed stoneware mug, 300ml.",mug.jpg
+SKU-003,,199,"Description present but name missing.",candle.jpg
+SKU-004,Brass Wall Hook Set,call for price,"Set of 3 brass hooks.",hooks.jpg
+SKU-005,Recycled Glass Vase,-150,"Vase made from recycled glass.",vase.jpg
+SKU-006,Bamboo Cutlery Set,249,"Travel-friendly bamboo cutlery, 4 pieces.",
+SKU-001,Handwoven Cotton Tote Bag (restock),599,"Duplicate SKU on purpose.",tote2.jpg
+SKU-007,Jute Doormat,349,"Natural jute doormat, 60x40cm.",doormat.jpg
+SKU-008,Wooden Coasters (Set of 6),,"",coasters.jpg
+SKU-009,Linen Table Runner,₹899,"Pure linen table runner, 180cm.",runner.jpg
+SKU-010,Item,99,,

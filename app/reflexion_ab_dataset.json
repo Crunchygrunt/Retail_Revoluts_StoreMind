@@ -1,0 +1,83 @@
+[
+  {
+    "sku": "AB-01",
+    "name": "Handwoven Cotton Kurta",
+    "description": "Breathable handwoven cotton kurta with block-printed detailing, available in three colors.",
+    "price": 899,
+    "category": "Apparel",
+    "note": "rich source, no statutory info — keywords/attributes should improve on retry, ONDC gap stays unretried"
+  },
+  {
+    "sku": "AB-02",
+    "name": "Organic Turmeric Powder Pouch",
+    "description": "Stone-ground organic turmeric powder, net weight 250g, packed 09/2026, sourced from Erode farms.",
+    "price": 149,
+    "category": "Grocery",
+    "note": "rich source WITH explicit net_quantity and manufacture_date stated in text"
+  },
+  {
+    "sku": "AB-03",
+    "name": "Item",
+    "description": "",
+    "price": 199,
+    "category": "Misc",
+    "note": "genuinely thin source — must never retry, must stay source-limited"
+  },
+  {
+    "sku": "AB-04",
+    "name": "Blue Ceramic Mug",
+    "description": "Simple.",
+    "price": 249,
+    "category": "Kitchenware",
+    "note": "borderline: real name, but description under the 20-char content floor"
+  },
+  {
+    "sku": "AB-05",
+    "name": "Brass Wall Hook Set",
+    "description": "Set of 4 brass wall hooks with a matte antique finish, ideal for entryway organization.",
+    "price": 349,
+    "category": "Home Decor",
+    "note": "rich source, no quantity/date mentioned at all — ONDC gap here is genuinely source-limited"
+  },
+  {
+    "sku": "AB-06",
+    "name": "Jute Tote Bag Pack of 3",
+    "description": "Durable jute tote bags, pack of 3, natural dye, hand-stitched handles.",
+    "price": 599,
+    "category": "Bags",
+    "note": "net_quantity ('pack of 3') present in text, manufacture_date genuinely absent — mixed case"
+  },
+  {
+    "sku": "AB-07",
+    "name": "Fabindia Cotton Dupatta",
+    "brand": "Fabindia",
+    "description": "Lightweight cotton dupatta with hand-block printing, part of the seasonal collection.",
+    "price": 799,
+    "category": "Apparel",
+    "note": "already-clean row (explicit brand) — under the mock backend this STILL retries once, because the mock deliberately under-delivers keywords on every first pass regardless of brand (see catalog_agent_mock.py's own docstring); a live Gemini backend often gets a clean row right immediately, so expect this row's attempt count to drop to 1 there"
+  },
+  {
+    "sku": "AB-08",
+    "name": "Product",
+    "description": "A well-made ceramic vase with a hand-glazed finish, roughly 30cm tall, suitable for dried or fresh flowers.",
+    "price": 450,
+    "category": "Home Decor",
+    "note": "generic placeholder NAME but a genuinely rich description — tests whether a thin name alone forces source-limited"
+  },
+  {
+    "sku": "AB-09",
+    "name": "เสื้อเชิตไหมพิมพ์ลาย",
+    "description": "เสื้อเชิตผ้าฝ้ายเนื้อนุ่ม ลวดลายดอกไม้สดใส",
+    "price": 320,
+    "category": "Apparel",
+    "note": "Thai (scriptio continua) name/description — checks reflexion doesn't misfire on non-whitespace scripts"
+  },
+  {
+    "sku": "AB-10",
+    "name": "Premium_Cotton_Kurta 🔥",
+    "description": "premium_cotton_kurta hand block printed soft breathable everyday wear",
+    "price": 999,
+    "category": "Apparel",
+    "note": "social-commerce style: underscore-joined name, emoji padding, no punctuation in description"
+  }
+]

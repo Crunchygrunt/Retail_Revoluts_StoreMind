@@ -1,0 +1,1 @@
+﻿{"payment": {"instruments": [{"id": "test-instrument", "handler_id": "com.google.pay", "selected": true}]}}

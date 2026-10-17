@@ -1,0 +1,112 @@
+# StoreMind — Technical Handoff
+
+**Context:** Google Cloud AI Builder Cup 2026, Retail & Commerce track. Core claim: **"Enforced, not just scored."**
+This handoff covers a single long session that added India-first seller-identity verification, ONDC catalog conformance, a live MCP agent widget, and fixed several real production bugs. Read this instead of reconstructing history from the chat.
+
+---
+
+## 1. High-Level Goal
+
+Three major bodies of work landed this session, on top of the existing ACP/UCP/MCP catalog pipeline:
+
+1. **Seller identity verification, India-first** — GSTIN was the wrong single gate (excludes the exact informal, sub-₹40L-turnover, WhatsApp/Instagram segment this product targets). Replaced with an **either-or** system: GSTIN alone / Udyam alone / UPI+PAN together / UPI+WhatsApp together.
+2. **ONDC catalog conformance** — a third eligibility lens alongside ACP and UCP, computed independently, catalog-readiness only (no live network participation, no `/select`/`/init`/`/confirm`).
+3. **A live, interactive MCP agent widget** on the Overview page — real Gemini function-calling against the same mounted `/ucp/mcp` endpoint Gemini CLI already proved works in production, not a canned example.
+
+Plus: brand inference is now category-scoped (was store-wide — the exact "still undecided" gap named in the original project handoff), and several real production bugs were found and fixed via live Cloud Run log diagnosis.
+
+**Active, unresolved bug going into the next session** (see §4): manufacture-date extraction into the new ONDC-required fields is not working, and the root cause isn't confirmed yet.
+
+---
+
+## 2. Technical Decisions & Architecture
+
+- **India-first confirmed**, not South-Asia-wide (this was decided at the very start of this session, superseding an earlier SEA-expansion plan).
+- **GSTIN**: structure + a real Luhn-mod-36 checksum, confirmed against two independently-sourced worked examples and cross-checked against `python-stdnum`'s own GSTIN module.
+- **PAN**: structure only — deliberately **no invented checksum**. `python-stdnum` itself calls PAN's check digit "an undocumented checksum algorithm" and validates structure only; matched that standard rather than guessing.
+- **Udyam**: structure only (`UDYAM-XX-00-0000000`), no checksum exists in the published format, no public verification API.
+- **UPI ID / WhatsApp phone**: format-only checks, explicitly named `*_format_valid` (never `*_verified`) in the code itself — neither has a checksum, so combined they're still weaker evidence than GSTIN alone.
+- **No live verification APIs anywhere** — explicit standing instruction from the user: *"do not check for live api... we can do api only if that api cost get cut from our gcp credit."* Everything above is offline, free, deterministic.
+- **Seller-as-packer**: opt-in only (`STOREMIND_SELLER_IS_PACKER=true`), never assumed by default — a reseller of branded goods (Nike, Bata) must not have a false manufacturer claim asserted on their behalf; only genuinely home-packing sellers use the store name as packer.
+- **Config split**: `deploy.env` (infrastructure — GCP project, LLM/store backend) vs. new **`seller.env`** (merchant/business facts — identity, ONDC packer/policy config). Two separate `load_dotenv()` calls in `main.py`, same mechanism, different files, so an infra change can't accidentally touch merchant config or vice versa.
+- **ONDC scope, deliberately bounded**: catalog conformance only. No registry participation, no live transaction lifecycle. `ondc_eligibility.py` mirrors `ucp_eligibility.py`'s pattern but is a **single boolean**, not a 3-tier split — ONDC's schema has no "catalog-only, not checkout-ready" middle tier the way ACP/UCP do.
+- **`ONDCMappingError` collects ALL applicable gaps at once**, unlike UCP's one-reason-at-a-time `UCPMappingError` — ONDC has enough independent prerequisites (domain, statutory fields, seller policy) that one-at-a-time reporting would mean several rounds of "fix one thing, discover the next."
+- **MCP live widget**: the backend (`mcp_agent_bridge.py`) opens a **real MCP client session** (`streamable_http_client` + `ClientSession`, the exact pattern confirmed working in `test_mcp_http_client.py`) against the same mounted `/ucp/mcp` — deliberately not a second, parallel in-process call to `ucp_catalog.py`, so the live widget and the Gemini-CLI-proven path are provably the same code.
+- **Brand inference is now category-scoped** (`infer_brand_by_category`), not store-wide. `infer_brand` (old, store-wide) is kept completely unchanged for backward compatibility with its existing tests; the vote-counting logic itself was extracted into a shared `_vote()` helper so there's one implementation, not two that could drift.
+- **`main.py` had ~600 lines of a fully-commented-out old version sitting above the real, active code** (994 lines total). Harmless at runtime (Python ignores comments) but a real maintenance risk. User has since stripped it; local working copy synced to match (now 594 lines). `firestore_client.py` and `local_store.py` likely have the same dead-block pattern — not yet cleaned up.
+
+---
+
+## 3. Completed Work
+
+### New files
+| File | Purpose |
+|---|---|
+| `gstin_validator.py` | Structure + Luhn-mod-36 checksum |
+| `pan_validator.py` | Structure only; shared PAN holder-type table (also used by gstin_validator) |
+| `udyam_validator.py` | Structure only |
+| `seller_contact_validators.py` | UPI VPA + WhatsApp phone format checks (weak signals) |
+| `ondc_mapping.py` | Category→ONDC domain mapping, statutory `packaged_commodities` builder, full `on_search` item mapper, `ONDCMappingError` |
+| `ondc_eligibility.py` | Thin wrapper around `ondc_mapping`, single boolean `is_ondc_listable` |
+| `mcp_agent_bridge.py` | Live Gemini function-calling + real MCP client loop for the `/mcp/ask` widget |
+| `test_mcp_agent_bridge.py` | Standalone sanity script (not run in a sandbox — needs live GCP + MCP server) |
+| `seller.env` | Populated real seller/business config, separate from `deploy.env` |
+| `tests/test_gstin_validator.py`, `test_pan_validator.py`, `test_udyam_validator.py`, `test_seller_contact_validators.py`, `test_layer0_inr_normalization.py`, `test_ondc_mapping.py`, `test_ondc_eligibility.py`, `test_brand_category_scoping.py` | ~100 tests, all confirmed passing |
+
+### Modified files
+| File | What changed |
+|---|---|
+| `layer0_validator.py` | INR pre-normalization: lakh/crore/k/L/Cr scale words, `/-`/"only" trailing noise, strict-vs-strict (not naive) western-grouping fallback |
+| `seller_profile.py` | Added GSTIN/PAN/Udyam/UPI/WhatsApp identity fields + either-or `_resolve_verification()`; added ONDC packer/consumer-care/fulfillment-policy fields (`resolved_packer_name`, `consumer_care_contact`, `returnable`/`cancellable`/`return_window_days`/`time_to_ship_hours`) |
+| `firestore_client.py` | Added `log_seller_event`; **fixed `list_products()`** — was missing `.order_by()` entirely |
+| `local_store.py` | Added `log_seller_event`; **fixed `list_products()`** — was relying on raw dict insertion order |
+| `main.py` | Seller-identity `/ingest` guard; `GET /seller`; `POST /mcp/ask`; ONDC eligibility computed at ingest (needs `seller_profile`, unlike ACP/UCP); brand inference switched to `infer_brand_by_category`; dead code block removed; `HTTPException` used for `/mcp/ask` errors (was a raw `JSONResponse({"error":...})` that `api.js` couldn't read) |
+| `catalog_agent.py` | `STRUCTURING_PROMPT` extended with named, optional `net_quantity`/`manufacture_date` fields (same anti-fabrication "omit if absent" pattern as `brand`) — **see §4, deployment status unconfirmed** |
+| `catalog_agent_aistudio.py` | Confirmed needs **zero changes** — imports `STRUCTURING_PROMPT` directly from `catalog_agent.py` |
+| `catalog_agent_mock.py` | Added regex-based `net_quantity`/`manufacture_date` simulation for 3-backend parity |
+| `brand_resolution.py` | Added `infer_brand_by_category` (new); `infer_brand` unchanged; shared `_vote()` helper extracted |
+| `api.js` | Added `askCatalog`, `getSeller` |
+| `format.js` | Added `sellerVerificationLabel/Tooltip/ClassName`, `ondcLabel/PillClassName/Tooltip` |
+| `OverviewPage.jsx` | New "Agents can shop this catalog directly" section — real interactive widget (input → live Gemini+MCP round trip → rendered transcript), not a static example |
+| `ProductsPage.jsx` | Seller-verification banner; ONDC column |
+| `styles.css` | `.status-pill-neutral` (fixed an invisible/unstyled pill bug), `.seller-verification-banner`, `.mcp-proof`/`.mcp-transcript` |
+
+### Real production bugs found and fixed this session
+1. Deployed `seller_profile.py` was stale (pre-dated the ONDC fields) → `AttributeError` 500 on every `/ingest` — fixed by redeploy.
+2. `firestore_client.list_products()` had no `order_by` → newly-ingested products were silently excluded from `/products`, masked as "ingest isn't working" — fixed with `order_by(updated_at, DESCENDING)`.
+3. `local_store.list_products()` — same symptom, different cause (dict insertion order) — fixed with an explicit sort.
+4. `/mcp/ask` returned `{"error": ...}`, which `api.js` doesn't check (`detail`/`reason` only) → generic "status 502" hid the real message — fixed via `HTTPException`.
+5. `mcp_agent_bridge.py` had no wall-clock timeout, only an iteration cap → a question needing an unsupported capability (price-range filtering) could hang past any useful error — fixed with `asyncio.wait_for(60s)`.
+6. `OverviewPage.jsx`'s live widget: typing a new question live-edited the *previous* answer's displayed question line — fixed by freezing `askedQuestion` at submit, separate from the live `question` input state.
+7. A hardcoded placeholder string I nearly shipped in `ondc_mapping.py` (`month_year_of_manufacture` defaulting to `"UNKNOWN - NOT YET COLLECTED"` instead of being a reported gap like every sibling field) — caught and fixed before delivery.
+
+---
+
+## 4. Current State & Unresolved Issues
+
+### CORS
+User reports CORS config has been addressed. Not independently verified this session — worth a quick real cross-origin request check if anything downstream looks CORS-shaped again.
+
+### Deliberately out of scope (not bugs)
+- ONDC `prepackaged_food`/FSSAI statutory block — explicitly refused with an honest error for food-category items, not built (would need a real FSSAI license number StoreMind has no way to collect/validate).
+- ONDC real per-domain category taxonomy — `category_id` is StoreMind's own free-text string, not validated against ONDC's actual codes.
+- Live ONDC network participation — no registry onboarding, no `/select`/`/init`/`/confirm`. Confirmed explicitly out of scope after reviewing a pasted "ONDC Integration Strategy" document (see below).
+- UPI penny-drop / WhatsApp Meta Graph API live verification — format-only checks only, by explicit instruction.
+
+### From the pasted ONDC Integration Strategy document — reviewed, not yet resolved
+Three real issues raised and **not yet decided**:
+1. The document's demo narrative includes a **Reflexion loop** — but Reflexion was explicitly cut earlier in this project ("cost doesn't justify the scope risk"). Contradiction not resolved.
+2. Document's Section 7 proposes a live financial-verification trust model (UPI penny-drop) that **directly overlaps** with the already-built, explicitly-offline either-or verification system. Not decided whether it should replace it, complement it, or be dropped.
+3. Document's demo steps assume live ONDC network publishing/search that was never built and is out of scope per this session's own decisions.
+
+User said "finish building whatever is left in ONDC integration, then we will discuss other things" — the **catalog-conformance work is finished**; these three bigger strategic questions were explicitly deferred, not resolved.
+
+### Minor, low-priority
+- `test_brand_resolution.py`: 10/11 confirmed passing against the real file. The 11th (`test_resolve_brand_never_emits_a_placeholder_string`) couldn't run in-sandbox (missing `acp_schema.py`) but exercises a code path identical to a sibling test that did pass — very likely fine, not independently confirmed.
+- `firestore_client.py` / `local_store.py` likely have the same dead-commented-block pattern `main.py` had. Not yet cleaned up.
+
+---
+
+## 5. Immediate Next Steps
+
+1. **Resolve the two deferred strategic questions** from the ONDC Integration Strategy doc: revisit Reflexion or not; decide whether Section 7's live trust model replaces, complements, or is dropped in favor of the built either-or system.
