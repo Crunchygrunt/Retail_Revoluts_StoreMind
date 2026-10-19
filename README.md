@@ -10,7 +10,7 @@ An agent-readiness and commerce-intelligence copilot that turns the messy catalo
 ![Tests](https://img.shields.io/badge/pytest-483%20passing-34A853)
 ![Stack](https://img.shields.io/badge/Cloud%20Run%20%C2%B7%20Firestore%20%C2%B7%20Vertex%20AI-FBBC04)
 
-Built by **Team Retail Revoluts** (team lead: Yuvraj Singh) for the Google Cloud AI Builder Cup 2026, Retail & Commerce track.
+Built by **Team Retail Revoluts** for the Google Cloud AI Builder Cup 2026, Retail & Commerce track.
 
 ---
 
@@ -372,4 +372,4 @@ storemind-frontend/
 
 ## Team
 
-**Retail Revoluts**, team lead **Yuvraj Singh**. Built for the Google Cloud AI Builder Cup 2026, Retail & Commerce track.
+**Retail Revoluts**, team members **Yuvraj Singh** & **Himanshu Raj**. Built for the Google Cloud AI Builder Cup 2026, Retail & Commerce track.
