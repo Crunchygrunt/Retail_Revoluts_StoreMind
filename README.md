@@ -257,7 +257,6 @@ Reproduce the A/B and fraud numbers with `GET /reflexion/ab-harness` (or `python
 
 ## Screenshots
 
-> Add the images below to `docs/screenshots/` (export them from the submission deck). File names are suggestions.
 
 | | |
 |---|---|
